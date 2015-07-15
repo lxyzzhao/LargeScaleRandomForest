@@ -44,13 +44,12 @@ public class RandomTree {
     }
 
     class Tree {
+        double[] distribution;
         private int min_Instance = 3;
         private double accuracy_e = 0.01;
         private double max_depth = Integer.MAX_VALUE;
-
         private Tree[] subTrees;
         private LinearModel model = null;
-        double[] distribution;
 
         public void makeTree(Instances instances) {
 
@@ -80,19 +79,14 @@ public class RandomTree {
 
             Queue<TreeTask> queue = new LinkedList<>();
 
-            TreeTask left = new TreeTask();
-            left.setChild_index(0);
-            left.setDataSet(subsets[0]);
-            left.setParent(this);
-            left.setDepth(1);
-            queue.offer(left);
-
-            TreeTask right = new TreeTask();
-            right.setChild_index(1);
-            right.setDataSet(subsets[1]);
-            right.setParent(this);
-            right.setDepth(1);
-            queue.offer(right);
+            for (int i = 0; i < subsets.length; i++) {
+                TreeTask task = new TreeTask();
+                task.setChild_index(i);
+                task.setDataSet(subsets[i]);
+                task.setParent(this);
+                task.setDepth(1);
+                queue.offer(task);
+            }
 
             while (!queue.isEmpty()) {
                 TreeTask task = queue.poll();
@@ -130,27 +124,22 @@ public class RandomTree {
                 subsets = root.splitData(dataSet);
                 root.subTrees = new Tree[2];
 
-                left = new TreeTask();
-                left.setChild_index(0);
-                left.setDataSet(subsets[0]);
-                left.setParent(root);
-                left.setDepth(depth + 1);
-                queue.offer(left);
+                for (int i = 0; i < subsets.length; i++) {
+                    TreeTask subTask = new TreeTask();
+                    subTask.setChild_index(i);
+                    subTask.setDataSet(subsets[i]);
+                    subTask.setParent(root);
+                    subTask.setDepth(depth + 1);
+                    queue.offer(subTask);
+                }
 
-                right = new TreeTask();
-                right.setChild_index(1);
-                right.setDataSet(subsets[1]);
-                right.setParent(root);
-                right.setDepth(depth + 1);
-                queue.offer(right);
-
-                distribution = null;
+                root.distribution = null;
             }
         }
 
         private Instances[] splitData(Instances data) {
             Instances[] subsets = new Instances[2];
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < subsets.length; i++) {
                 subsets[i] = new Instances(data, data.numInstances());
             }
 
@@ -160,6 +149,10 @@ public class RandomTree {
                 int predictedValue = model.predict(ins);
                 subsets[predictedValue >= 0 ? 0 : 1].add(ins);
             }
+            for (int i = 0; i < subsets.length; i++) {
+                subsets[i].compactify();
+            }
+
             return subsets;
         }
 
@@ -175,12 +168,18 @@ public class RandomTree {
         }
 
         public double[] distribution(Instance instance) {
-            if (subTrees == null) {
-                return distribution;
-            } else {
-                int predicted_value = model.predict(instance);
-                return subTrees[predicted_value >= 0 ? 0 : 1].distribution(instance);
+            double[] dist = null;
+            Tree root = this;
+            while (root != null) {
+
+                if (root.subTrees == null) {
+                    return root.distribution;
+                } else {
+                    int predicted_value = root.model.predict(instance);
+                    root = root.subTrees[predicted_value >= 0 ? 0 : 1];
+                }
             }
+            return dist;
         }
     }
 }

@@ -4,6 +4,7 @@ import weka.core.Instance;
  * Created by lyz on 7/13/15.
  */
 public class Utils {
+
     public static double[] getFeatures(Instance ins) {
         double[] features = new double[ins.numAttributes() - 1];
         int k = 0;
@@ -35,15 +36,13 @@ public class Utils {
         return Math.sqrt(squareSum(array));
     }
 
-    public static double[] vectorPlus(double[] array1, double[] array2) {
+    public static void vectorPlusInPlace(double[] array1, double[] array2) {
         if (array1.length != array2.length) {
-            return null;
+            return;
         }
-        double[] sum = new double[array1.length];
         for (int i = 0; i < array1.length; i++) {
-            sum[i] = array1[i] + array2[i];
+            array1[i] += array2[i];
         }
-        return sum;
     }
 
     public static double[] vectorMinus(double[] array1, double[] array2) {
@@ -64,6 +63,12 @@ public class Utils {
             product[i] = array1[i] * number;
         }
         return product;
+    }
+
+    public static void vectorTimesScalarInPlace(double[] array1, double number) {
+        for (int i = 0; i < array1.length; i++) {
+            array1[i] *= number;
+        }
     }
 
     public static double dotProduct(double[] array1, double[] array2) {

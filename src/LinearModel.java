@@ -17,9 +17,9 @@ public class LinearModel {
         this.accuracy_e = accuracy_e;
     }
 
-    public void buildClassifier(Instances data1) {
+    public void buildClassifier(Instances data) {
 
-        Instances dataSet = new Instances(data1);
+        Instances dataSet = new Instances(data);
 
         Random random = new Random();
         dataSet.randomize(random);
@@ -61,28 +61,35 @@ public class LinearModel {
         double[] x_pos = Utils.getFeatures(pos_instance);
         double[] x_neg = Utils.getFeatures(neg_instance);
 
+
         w = Utils.vectorMinus(x_pos, Utils.vectorTimesScalar(x_neg, 1.0 / Utils.norm(Utils.vectorMinus(x_pos, x_neg))));
         Utils.normalizeVectorInPlace(w);
         b = (Utils.dotProduct(w, x_pos) + Utils.dotProduct(w, x_neg)) / 2;
 
-        enumeration = dataSet.enumerateInstances();
         int iteration = 0;
-        while (enumeration.hasMoreElements() && iteration < max_iteration) {
+        int D = dataSet.numInstances();
+        double[] lastW = new double[w.length];
+
+        while (iteration < max_iteration) {
             iteration++;
 
-            double[] newW = Arrays.copyOf(w, w.length);
-            double newB = b;
-            Instance ins = (Instance) enumeration.nextElement();
+            if (iteration % D == 0) {
+                if (Utils.norm(Utils.vectorMinus(w, lastW)) <= 0.001) {
+                    break;
+                } else {
+                    lastW = Arrays.copyOf(w, w.length);
+                }
+            }
+
+            Instance ins = dataSet.instance(iteration % D);
             int l_x = ins.classValue() == positive_class ? +1 : -1;
             double[] x = Utils.getFeatures(ins);
             if ((Utils.dotProduct(w, x) + b) * l_x < 0) {
-                double coefficient = 0.1 / (0.1 + iteration * Math.pow(2, accuracy_e)) * l_x;
-                newW = Utils.vectorPlus(w, Utils.vectorTimesScalar(x, coefficient));
-                newB = b + coefficient;
+                double coefficient = 0.1 / (0.1 + iteration * Math.pow(accuracy_e, 2)) * l_x;
+                Utils.vectorTimesScalarInPlace(x, coefficient);
+                Utils.vectorPlusInPlace(w, x);
+                b += coefficient;
             }
-            w = newW;
-            b = newB;
-            // if(Utils.norm(newW)<0.001)
         }
     }
 

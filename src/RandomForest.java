@@ -1,5 +1,6 @@
 import weka.classifiers.Classifier;
-import weka.core.*;
+import weka.core.Instance;
+import weka.core.Instances;
 
 /**
  * Created by lyz on 7/13/15.
@@ -12,6 +13,9 @@ public class RandomForest extends Classifier {
     private double accuracy_e = 0.01;
     private int max_depth = Integer.MAX_VALUE;
 
+
+    public RandomForest() {
+    }
 
     public void setMax_trees(int max_trees) {
         this.max_trees = max_trees;
@@ -28,10 +32,6 @@ public class RandomForest extends Classifier {
     public void setMax_depth(int max_depth) {
         this.max_depth = max_depth;
     }
-
-    public RandomForest() {
-    }
-
 
     public void buildClassifier(Instances data) throws Exception {
 
@@ -53,7 +53,7 @@ public class RandomForest extends Classifier {
         double[] dist = new double[instance.numClasses()];
 
         for (int i = 0; i < max_trees; i++) {
-            dist = Utils.vectorPlus(dist, trees[i].distribution(instance));
+            Utils.vectorPlusInPlace(dist, trees[i].distribution(instance));
         }
         return Utils.max_index(dist);
     }
