@@ -1,8 +1,8 @@
-import weka.classifiers.Classifier;
 import weka.core.Instance;
 import weka.core.Instances;
 
 import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.Queue;
 
 /**
@@ -10,7 +10,7 @@ import java.util.Queue;
  */
 public class RandomTree {
 
-    private int min_Instance = 10;
+    private int min_Instance = 3;
 
     private double accuracy_e = 0.01;
 
@@ -44,7 +44,7 @@ public class RandomTree {
     }
 
     class Tree {
-        private int min_Instance = 10;
+        private int min_Instance = 3;
         private double accuracy_e = 0.01;
         private double max_depth = Integer.MAX_VALUE;
 
@@ -53,16 +53,12 @@ public class RandomTree {
         double[] distribution;
 
         public void makeTree(Instances instances) {
-            makeTree(instances, 0);
-        }
-
-        private void makeTree(Instances instances, int depth) {
-          //  System.out.println("Current Depth: "+depth);
 
             distribution = distributionFor(instances);
-            if (instances.numInstances() <= min_Instance || depth > max_depth) {
+            if (instances.numInstances() <= min_Instance) {
                 return;
             }
+
             for (int i = 0; i < instances.numClasses(); i++) {
                 if (distribution[i] == 1) {
                     return;
@@ -74,16 +70,82 @@ public class RandomTree {
             model.buildClassifier(instances);
 
             Instances[] subsets = splitData(instances);
-
             subTrees = new Tree[2];
             for (int i = 0; i < 2; i++) {
                 subTrees[i] = new Tree();
                 subTrees[i].min_Instance = min_Instance;
                 subTrees[i].accuracy_e = accuracy_e;
                 subTrees[i].max_depth = max_depth;
-                subTrees[i].makeTree(subsets[i], depth + 1);
             }
-            distribution = null;
+
+            Queue<TreeTask> queue = new LinkedList<>();
+
+            TreeTask left = new TreeTask();
+            left.setChild_index(0);
+            left.setDataSet(subsets[0]);
+            left.setParent(this);
+            left.setDepth(1);
+            queue.offer(left);
+
+            TreeTask right = new TreeTask();
+            right.setChild_index(1);
+            right.setDataSet(subsets[1]);
+            right.setParent(this);
+            right.setDepth(1);
+            queue.offer(right);
+
+            while (!queue.isEmpty()) {
+                TreeTask task = queue.poll();
+                int depth = task.getDepth();
+
+                Instances dataSet = task.getDataSet();
+                task.getParent().subTrees[task.getChild_index()] = new Tree();
+
+                Tree root = task.getParent().subTrees[task.getChild_index()];
+                root.min_Instance = min_Instance;
+                root.accuracy_e = accuracy_e;
+                root.max_depth = max_depth;
+
+                root.distribution = distributionFor(dataSet);
+
+                if (dataSet.numInstances() <= root.min_Instance || depth > root.max_depth) {
+                    continue;
+                }
+
+                boolean one_class = false;
+                for (int i = 0; i < dataSet.numClasses(); i++) {
+                    if (root.distribution[i] == 1) {
+                        one_class = true;
+                        break;
+                    }
+                }
+                if (one_class) {
+                    continue;
+                }
+
+                root.model = new LinearModel();
+                root.model.setAccuracy_e(root.accuracy_e);
+                root.model.buildClassifier(dataSet);
+
+                subsets = root.splitData(dataSet);
+                root.subTrees = new Tree[2];
+
+                left = new TreeTask();
+                left.setChild_index(0);
+                left.setDataSet(subsets[0]);
+                left.setParent(root);
+                left.setDepth(depth + 1);
+                queue.offer(left);
+
+                right = new TreeTask();
+                right.setChild_index(1);
+                right.setDataSet(subsets[1]);
+                right.setParent(root);
+                right.setDepth(depth + 1);
+                queue.offer(right);
+
+                distribution = null;
+            }
         }
 
         private Instances[] splitData(Instances data) {

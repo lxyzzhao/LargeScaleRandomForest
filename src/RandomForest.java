@@ -1,4 +1,3 @@
-
 import weka.classifiers.Classifier;
 import weka.core.*;
 
@@ -8,11 +7,10 @@ import weka.core.*;
 public class RandomForest extends Classifier {
 
     private RandomTree[] trees;
-    private int max_trees = 10;
-    private int min_Instance = 10;
+    private int max_trees = 20;
+    private int min_Instance = 3;
     private double accuracy_e = 0.01;
     private int max_depth = Integer.MAX_VALUE;
-    private int num_class = 0;
 
 
     public void setMax_trees(int max_trees) {
@@ -37,10 +35,9 @@ public class RandomForest extends Classifier {
 
     public void buildClassifier(Instances data) throws Exception {
 
-        num_class = data.numClasses();
         trees = new RandomTree[max_trees];
         for (int i = 0; i < max_trees; i++) {
-            System.out.println("Begin Tree No. " + i);
+            System.out.println("Training Tree No. " + i);
 
             trees[i] = new RandomTree();
             trees[i].setAccuracy_e(accuracy_e);
@@ -53,12 +50,9 @@ public class RandomForest extends Classifier {
     }
 
     public int predict(Instance instance) {
-
         double[] dist = new double[instance.numClasses()];
-        double[][] dists = new double[max_trees][instance.numClasses()];
 
         for (int i = 0; i < max_trees; i++) {
-            dists[i] = Utils.vectorPlus(dist, trees[i].distribution(instance));
             dist = Utils.vectorPlus(dist, trees[i].distribution(instance));
         }
         return Utils.max_index(dist);
